@@ -11,8 +11,8 @@ import org.opencv.android.CameraBridgeViewBase;
 import org.opencv.android.JavaCameraView;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
+import org.opencv.core.Core;
 import org.opencv.core.Mat;
-import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 
 public class MainActivity extends AppCompatActivity implements CameraBridgeViewBase.CvCameraViewListener2 {
@@ -52,6 +52,8 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         // Example of a call to a native method
         Log.i(TAG, stringFromJNI());
 
+        OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_2_0, this, mLoaderCallback);
+
         cameraView = findViewById(R.id.camera_view);
 
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
@@ -80,9 +82,15 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
     public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame viewFrame) {
 
         //Apply transform here.
-        Mat edges = new Mat();
 
-        Imgproc.Canny(viewFrame.gray(), edges, 75, 200);
+        Mat grey = new Mat();
+        Imgproc.cvtColor(viewFrame.rgba(), grey, Imgproc.COLOR_BGR2GRAY);
+
+        Mat edges = new Mat();
+        Imgproc.Canny(grey, edges, 50, 150);
+        grey.release();
+
+
 
         return edges;
     }
