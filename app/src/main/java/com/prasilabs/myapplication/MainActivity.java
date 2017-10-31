@@ -11,8 +11,10 @@ import org.opencv.android.CameraBridgeViewBase;
 import org.opencv.android.JavaCameraView;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
-import org.opencv.core.Core;
 import org.opencv.core.Mat;
+import org.opencv.core.Point;
+import org.opencv.core.Scalar;
+import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 
 public class MainActivity extends AppCompatActivity implements CameraBridgeViewBase.CvCameraViewListener2 {
@@ -52,8 +54,6 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         // Example of a call to a native method
         Log.i(TAG, stringFromJNI());
 
-        OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_2_0, this, mLoaderCallback);
-
         cameraView = findViewById(R.id.camera_view);
 
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
@@ -83,16 +83,99 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 
         //Apply transform here.
 
+        Mat grey = doGrey(viewFrame.rgba());
+        //Mat gausianBlur = doGausianBlur(grey);
+
+        Mat edges = doCanny(grey);
+
+
+        Mat coloredEdges = colorCanny(edges);
+        Mat hough = applyHoughTransform(edges);
+
+        plotTheLines(coloredEdges, hough);
+
+        return coloredEdges;
+    }
+
+    private Mat doGrey(Mat source) {
+
         Mat grey = new Mat();
-        Imgproc.cvtColor(viewFrame.rgba(), grey, Imgproc.COLOR_BGR2GRAY);
+        Imgproc.cvtColor(source, grey, Imgproc.COLOR_BGR2GRAY);
+        source.release();
+
+        return grey;
+    }
+
+    private void plotTheLines(Mat colouredEdge, Mat hough) {
+
+        double[] data;
+        double rho, theta;
+        Point pt1 = new Point();
+        Point pt2 = new Point();
+        double a, b;
+        double x0, y0;
+
+        for (int i = 0; i < hough.cols(); i++) {
+
+            data = hough.get(0, i);
+            if (data != null && data.length > 1) {
+                rho = data[0];
+                theta = data[1];
+
+                a = Math.cos(theta);
+                b = Math.sin(theta);
+
+                x0 = a * rho;
+                y0 = b * rho;
+
+                pt1.x = Math.round(x0 + 1000 * (-b));
+                pt1.y = Math.round(y0 + 1000 * (a));
+                pt2.x = Math.round(x0 - 1000 * (-b));
+                pt2.y = Math.round(y0 - 1000 * (a));
+
+                Imgproc.line(colouredEdge, pt1, pt2, new Scalar(0, 0, 255), 6);
+            } else {
+                Log.w(TAG, "data size is null");
+            }
+        }
+    }
+
+    private Mat applyHoughTransform(Mat source) {
+
+        Mat hough = new Mat();
+
+        Imgproc.HoughLines(source, hough, 2, Math.PI / 45, 20);
+
+        return hough;
+
+    }
+
+    private Mat colorCanny(Mat cannyMat) {
+        Mat colouredCanny = new Mat();
+
+        Imgproc.cvtColor(cannyMat, colouredCanny, Imgproc.COLOR_GRAY2BGR);
+
+        return colouredCanny;
+    }
+
+    private Mat doCanny(Mat source) {
 
         Mat edges = new Mat();
-        Imgproc.Canny(grey, edges, 50, 150);
-        grey.release();
+        Imgproc.Canny(source, edges, 50, 200);
 
-
+        source.release();
 
         return edges;
+    }
+
+    private Mat doGausianBlur(Mat source) {
+        Mat blur = new Mat();
+
+        Imgproc.GaussianBlur(source, blur, new Size(45, 45), 0);
+
+        source.release();
+
+        return blur;
     }
 
     @Override
