@@ -161,7 +161,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
     private Mat doCanny(Mat source) {
 
         Mat edges = new Mat();
-        Imgproc.Canny(source, edges, 50, 200);
+        Imgproc.Canny(source, edges, 30, 180);
 
         source.release();
 
