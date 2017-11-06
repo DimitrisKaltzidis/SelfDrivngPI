@@ -1,10 +1,13 @@
 package com.prasilabs.myapplication;
 
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.SurfaceView;
 import android.view.WindowManager;
+import android.widget.TextView;
 
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.CameraBridgeViewBase;
@@ -26,6 +29,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         System.loadLibrary("native-lib");
     }
 
+    TextView directionText;
     private JavaCameraView cameraView;
     private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
         @Override
@@ -51,22 +55,16 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // Example of a call to a native method
-        Log.i(TAG, stringFromJNI());
-
         cameraView = findViewById(R.id.camera_view);
 
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         cameraView.setVisibility(SurfaceView.VISIBLE);
         cameraView.setCvCameraViewListener(this);
+
+        directionText = findViewById(R.id.direction_text);
     }
 
-    /**
-     * A native method that is implemented by the 'native-lib' native library,
-     * which is packaged with this application.
-     */
-    public native String stringFromJNI();
 
     @Override
     public void onCameraViewStarted(int i, int i1) {
@@ -133,12 +131,27 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
                 pt2.x = Math.round(x0 - 1000 * (-b));
                 pt2.y = Math.round(y0 - 1000 * (a));
 
+                Log.w(TAG, "x1 is : " + pt1.x);
+                Log.w(TAG, "y1 is : " + pt1.y);
+                Log.w(TAG, "x2 is : " + pt2.x);
+                Log.w(TAG, "y2 is : " + pt2.y);
+
+                if (Math.abs((pt1.x - pt2.x)) > Math.abs((pt1.y - pt2.y))) {
+
+                    if (pt2.y - pt1.y > 0) {
+                        Log.i(TAG, "left");
+                    } else if (pt2.y - pt1.y < 0) {
+                        Log.i(TAG, "right");
+                    }
+                }
+
                 Imgproc.line(colouredEdge, pt1, pt2, new Scalar(0, 0, 255), 6);
             } else {
                 Log.w(TAG, "data size is null");
             }
         }
     }
+
 
     private Mat applyHoughTransform(Mat source) {
 
